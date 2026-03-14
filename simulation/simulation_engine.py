@@ -14,6 +14,7 @@ class Simulation:
         self.market = Market()
         self.population_history = []
         self.price_history = []
+        self.wealth_history = []
 
         self.agents = []
 
@@ -45,10 +46,13 @@ class Simulation:
                     agent.move_toward(target, self.environment.size)
             elif action == "buy_food":
 
-                success = self.market.buy_food(agent)
+                traded = self.agent_trade(agent)
 
-                if not success:
-                    agent.move(self.environment.size)
+                if not traded:
+                    success = self.market.buy_food(agent)
+
+                    if not success:
+                        agent.move(self.environment.size)
 
             elif action == "explore":
 
@@ -105,9 +109,42 @@ class Simulation:
             self.draw(step)
 
             alive_agents = sum(agent.alive for agent in self.agents)
+
+            wealth = [agent.money for agent in self.agents if agent.alive]
+            self.wealth_history.append(wealth)
+            
             self.population_history.append(alive_agents)
             self.price_history.append(self.market.food_price)
 
             print(f"Step {step} | Alive: {alive_agents} | Food Price: {self.market.food_price}")
 
             time.sleep(0.05)
+    def agent_trade(self, buyer):
+
+        for seller in self.agents:
+
+            if seller is buyer:
+                continue
+
+            if not seller.alive:
+                continue
+
+            # seller must have extra food
+            if seller.food > 6:
+
+                # must be near each other
+                if abs(seller.x - buyer.x) <= 1 and abs(seller.y - buyer.y) <= 1:
+
+                    price = self.market.food_price
+
+                    if buyer.money >= price:
+
+                        buyer.money -= price
+                        buyer.food += 2
+
+                        seller.money += price
+                        seller.food -= 2
+
+                        return True
+
+        return False
