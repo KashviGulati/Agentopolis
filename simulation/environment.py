@@ -44,3 +44,19 @@ class Environment:
                 return True
 
         return False
+    def nearest_workplace(self, pos):
+
+        x, y = pos
+
+        nearest = None
+        min_dist = float("inf")
+
+        for wx, wy in self.work_locations:
+
+            dist = abs(wx - x) + abs(wy - y)
+
+            if dist < min_dist:
+                min_dist = dist
+                nearest = (wx, wy)
+
+        return nearest

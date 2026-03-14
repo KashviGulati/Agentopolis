@@ -12,6 +12,8 @@ class Simulation:
 
         self.environment = Environment()
         self.market = Market()
+        self.population_history = []
+        self.price_history = []
 
         self.agents = []
 
@@ -37,10 +39,10 @@ class Simulation:
             if action == "work":
 
                 if self.environment.near_work_location(pos):
-                    agent.money += 12
+                    agent.money += 5
                 else:
-                    agent.move(self.environment.size)
-
+                    target = self.environment.nearest_workplace(pos)
+                    agent.move_toward(target, self.environment.size)
             elif action == "buy_food":
 
                 success = self.market.buy_food(agent)
@@ -103,6 +105,8 @@ class Simulation:
             self.draw(step)
 
             alive_agents = sum(agent.alive for agent in self.agents)
+            self.population_history.append(alive_agents)
+            self.price_history.append(self.market.food_price)
 
             print(f"Step {step} | Alive: {alive_agents} | Food Price: {self.market.food_price}")
 

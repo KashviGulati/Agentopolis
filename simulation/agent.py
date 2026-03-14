@@ -49,3 +49,19 @@ class Agent:
 
         if self.food <= 0:
             self.alive = False
+    def move_toward(self, target, grid_size):
+
+        tx, ty = target
+
+        if tx > self.x:
+            self.x += 1
+        elif tx < self.x:
+            self.x -= 1
+
+        if ty > self.y:
+            self.y += 1
+        elif ty < self.y:
+            self.y -= 1
+
+        self.x = max(0, min(grid_size - 1, self.x))
+        self.y = max(0, min(grid_size - 1, self.y))
