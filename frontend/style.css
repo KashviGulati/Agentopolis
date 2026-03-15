@@ -1,13 +1,16 @@
-body {
+body{
 
-    background: #1e1e1e;
-    color: white;
-    text-align: center;
-    font-family: Arial;
+    background:#111;
+    color:white;
+    text-align:center;
+    font-family:Arial;
+
 }
 
-canvas {
+canvas{
 
-    background: #9be79b;
-    border: 2px solid black;
+    background:#7ec850;
+    border:3px solid #222;
+    box-shadow:0 0 20px black;
+
 }

@@ -2,95 +2,179 @@ const canvas = document.getElementById("cityCanvas");
 const ctx = canvas.getContext("2d");
 
 const gridSize = 30;
-const tileSize = 20;
+const tileSize = 32;
 
-/* ---------- CITY BUILDINGS ---------- */
+/* ---------- TILE TYPES ---------- */
 
-const work = [
-    {x:5,y:5},
-    {x:12,y:10},
-    {x:20,y:8}
-]
+const TILE = {
+    GRASS: 0,
+    ROAD: 1,
+    HOUSE: 2,
+    WORK: 3,
+    MARKET: 4
+};
 
-const market = [
-    {x:10,y:20},
-    {x:25,y:15}
-]
+/* ---------- SPRITES ---------- */
 
-const housing = [
-    {x:3,y:25},
-    {x:7,y:23},
-    {x:15,y:25},
-    {x:18,y:24}
-]
+const sprites = {
+    grass: new Image(),
+    road: new Image(),
+    house: new Image(),
+    office: new Image(),
+    market: new Image()
+};
+
+sprites.grass.src = "sprites/grass.png";
+sprites.road.src = "sprites/road.png";
+sprites.house.src = "sprites/house.png";
+sprites.office.src = "sprites/office.png";
+sprites.market.src = "sprites/market.png";
+
+/* ---------- MAP ---------- */
+
+const map = [];
+
+for (let y = 0; y < gridSize; y++) {
+
+    const row = [];
+
+    for (let x = 0; x < gridSize; x++) {
+        row.push(TILE.GRASS);
+    }
+
+    map.push(row);
+}
+
+/* ---------- ROAD GRID ---------- */
+
+for (let i = 0; i < gridSize; i++) {
+
+    map[10][i] = TILE.ROAD;
+    map[20][i] = TILE.ROAD;
+
+    map[i][10] = TILE.ROAD;
+    map[i][20] = TILE.ROAD;
+}
+
+/* ---------- BUILDING FUNCTION ---------- */
+
+function placeBuilding(x, y, type) {
+
+    map[y][x] = type;
+    map[y][x + 1] = type;
+    map[y + 1][x] = type;
+    map[y + 1][x + 1] = type;
+}
+
+/* ---------- RESIDENTIAL DISTRICT (TOP LEFT) ---------- */
+
+for (let y = 2; y < 8; y += 3) {
+    for (let x = 2; x < 8; x += 3) {
+
+        placeBuilding(x, y, TILE.HOUSE);
+
+    }
+}
+
+/* ---------- WORK DISTRICT (CENTER LEFT) ---------- */
+
+for (let y = 12; y < 18; y += 3) {
+    for (let x = 3; x < 9; x += 3) {
+
+        placeBuilding(x, y, TILE.WORK);
+
+    }
+}
+
+/* ---------- MARKET DISTRICT (RIGHT SIDE) ---------- */
+
+for (let y = 12; y < 18; y += 3) {
+    for (let x = 22; x < 27; x += 3) {
+
+        placeBuilding(x, y, TILE.MARKET);
+
+    }
+}
+
+/* ---------- RESIDENTIAL DISTRICT (BOTTOM) ---------- */
+
+for (let y = 22; y < 28; y += 3) {
+    for (let x = 12; x < 18; x += 3) {
+
+        placeBuilding(x, y, TILE.HOUSE);
+
+    }
+}
 
 /* ---------- AGENTS ---------- */
 
-const agents = []
+const agents = [];
 
-for(let i=0;i<10;i++){
+for (let i = 0; i < 40; i++) {
 
     agents.push({
-        x: Math.floor(Math.random()*gridSize),
-        y: Math.floor(Math.random()*gridSize)
-    })
-
+        x: Math.floor(Math.random() * gridSize),
+        y: Math.floor(Math.random() * gridSize)
+    });
 }
 
-/* ---------- DRAW GRID ---------- */
+/* ---------- DRAW TILE ---------- */
 
-function drawGrid(){
+function drawTile(x, y, type) {
 
-    for(let x=0;x<gridSize;x++){
-        for(let y=0;y<gridSize;y++){
+    const px = x * tileSize;
+    const py = y * tileSize;
 
-            ctx.strokeStyle="#66bb6a"
+    if (type === TILE.GRASS)
+        ctx.drawImage(sprites.grass, px, py, tileSize, tileSize);
 
-            ctx.strokeRect(
-                x*tileSize,
-                y*tileSize,
-                tileSize,
-                tileSize
-            )
+    if (type === TILE.ROAD)
+        ctx.drawImage(sprites.road, px, py, tileSize, tileSize);
+
+    if (type === TILE.HOUSE)
+        ctx.drawImage(sprites.house, px, py, tileSize, tileSize);
+
+    if (type === TILE.WORK)
+        ctx.drawImage(sprites.office, px, py, tileSize, tileSize);
+
+    if (type === TILE.MARKET)
+        ctx.drawImage(sprites.market, px, py, tileSize, tileSize);
+}
+
+/* ---------- DRAW MAP ---------- */
+
+function drawMap() {
+
+    for (let y = 0; y < gridSize; y++) {
+
+        for (let x = 0; x < gridSize; x++) {
+
+            drawTile(x, y, map[y][x]);
+
         }
     }
 }
 
-/* ---------- DRAW BUILDINGS ---------- */
-
-function drawBuildings(){
-
-    work.forEach(p=>{
-        ctx.fillStyle="gray"
-        ctx.fillRect(p.x*tileSize,p.y*tileSize,tileSize,tileSize)
-    })
-
-    market.forEach(p=>{
-        ctx.fillStyle="blue"
-        ctx.fillRect(p.x*tileSize,p.y*tileSize,tileSize,tileSize)
-    })
-
-    housing.forEach(p=>{
-        ctx.fillStyle="purple"
-        ctx.fillRect(p.x*tileSize,p.y*tileSize,tileSize,tileSize)
-    })
-}
-
 /* ---------- DRAW AGENTS ---------- */
 
-function drawAgents(){
+function drawAgents() {
 
-    ctx.font = "16px Arial"
+    agents.forEach(agent => {
 
-    agents.forEach(agent=>{
+        ctx.beginPath();
 
-        ctx.fillText(
-            "👤",
-            agent.x*tileSize + 2,
-            agent.y*tileSize + 16
-        )
+        ctx.fillStyle = "yellow";
 
-    })
+        ctx.arc(
+            agent.x * tileSize + tileSize / 2,
+            agent.y * tileSize + tileSize / 2,
+            5,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+    });
 }
 
 /* ---------- MOVE AGENTS ---------- */
@@ -99,34 +183,51 @@ function moveAgents(){
 
     agents.forEach(agent=>{
 
-        const dx = Math.floor(Math.random()*3) - 1
-        const dy = Math.floor(Math.random()*3) - 1
+        const directions = [
+            {dx:1,dy:0},
+            {dx:-1,dy:0},
+            {dx:0,dy:1},
+            {dx:0,dy:-1}
+        ]
 
-        agent.x = Math.max(0,Math.min(gridSize-1,agent.x + dx))
-        agent.y = Math.max(0,Math.min(gridSize-1,agent.y + dy))
+        const dir = directions[Math.floor(Math.random()*4)]
+
+        const nx = agent.x + dir.dx
+        const ny = agent.y + dir.dy
+
+        if(nx>=0 && nx<gridSize && ny>=0 && ny<gridSize){
+
+            if(map[ny][nx] === TILE.ROAD){
+                agent.x = nx
+                agent.y = ny
+            }
+
+        }
 
     })
+
 }
 
 /* ---------- RENDER ---------- */
 
-function render(){
+function render() {
 
-    ctx.clearRect(0,0,600,600)
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    drawGrid()
-    drawBuildings()
-    drawAgents()
-
+    drawMap();
+    drawAgents();
 }
 
 /* ---------- GAME LOOP ---------- */
 
-function gameLoop(){
+function gameLoop() {
 
-    moveAgents()
-    render()
-
+    moveAgents();
+    render();
 }
 
-setInterval(gameLoop,400)
+window.onload = () => {
+
+    render();
+    setInterval(gameLoop, 400);
+};
