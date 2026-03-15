@@ -12,6 +12,7 @@ class Simulation:
 
         self.environment = Environment()
         self.market = Market()
+
         self.population_history = []
         self.price_history = []
         self.wealth_history = []
@@ -25,7 +26,6 @@ class Simulation:
         plt.ion()
         self.fig, self.ax = plt.subplots()
 
-
     def step(self):
 
         for agent in self.agents:
@@ -34,9 +34,9 @@ class Simulation:
                 continue
 
             action = agent.decide()
-
             pos = agent.position()
 
+            # ---- WORK ACTION ----
             if action == "work":
 
                 if self.environment.near_work_location(pos):
@@ -44,22 +44,35 @@ class Simulation:
                 else:
                     target = self.environment.nearest_workplace(pos)
                     agent.move_toward(target, self.environment.size)
+
+            # ---- BUY FOOD ACTION ----
             elif action == "buy_food":
 
                 traded = self.agent_trade(agent)
 
                 if not traded:
-                    success = self.market.buy_food(agent)
 
-                    if not success:
-                        agent.move(self.environment.size)
+                    pos = agent.position()
 
+                    if self.environment.near_market(pos):
+
+                        success = self.market.buy_food(agent)
+
+                        if not success:
+                            agent.move(self.environment.size)
+
+                    else:
+
+                        target = self.environment.nearest_market(pos)
+                        agent.move_toward(target, self.environment.size)
+
+            # ---- EXPLORE ACTION ----
             elif action == "explore":
 
                 agent.move(self.environment.size)
 
+            # consume food each step
             agent.consume_food()
-
 
     def draw(self, step):
 
@@ -84,21 +97,39 @@ class Simulation:
             else:
                 colors.append("red")
 
+        # draw agents
         self.ax.scatter(xs, ys, c=colors)
 
-        # plot workplaces
+        # workplaces
         wx = [x for x, y in self.environment.work_locations]
         wy = [y for x, y in self.environment.work_locations]
 
-        self.ax.scatter(wx, wy, marker="s")
+        self.ax.scatter(wx, wy, marker="s", color="black", s=120, label="Work")
 
-        self.ax.set_title(f"Step {step} | Food Price: {self.market.food_price}")
+        # markets
+        mx = [x for x, y in self.environment.market_locations]
+        my = [y for x, y in self.environment.market_locations]
+
+        self.ax.scatter(mx, my, marker="^", color="blue", s=140, label="Market")
+
+        # housing
+        hx = [x for x, y in self.environment.housing_locations]
+        hy = [y for x, y in self.environment.housing_locations]
+
+        self.ax.scatter(hx, hy, marker="D", color="purple", s=120, label="Housing")
+
+        self.ax.set_title(
+            f"Agentopolis | Step {step} | Food Price: {self.market.food_price}"
+        )
+
         self.ax.set_xlim(0, self.environment.size)
         self.ax.set_ylim(0, self.environment.size)
 
+        self.ax.legend()
+        self.ax.grid(True)
+
         plt.draw()
         plt.pause(0.01)
-
 
     def run(self, steps=100):
 
@@ -111,15 +142,22 @@ class Simulation:
             alive_agents = sum(agent.alive for agent in self.agents)
 
             wealth = [agent.money for agent in self.agents if agent.alive]
+
             self.wealth_history.append(wealth)
-            
             self.population_history.append(alive_agents)
             self.price_history.append(self.market.food_price)
 
-            print(f"Step {step} | Alive: {alive_agents} | Food Price: {self.market.food_price}")
+            print(
+                f"Step {step} | Alive: {alive_agents} | Food Price: {self.market.food_price}"
+            )
 
             time.sleep(0.05)
+
     def agent_trade(self, buyer):
+
+        # antisocial agents rarely trade
+        if buyer.sociability < 0.4:
+            return False
 
         for seller in self.agents:
 
@@ -129,10 +167,10 @@ class Simulation:
             if not seller.alive:
                 continue
 
-            # seller must have extra food
-            if seller.food > 6:
+            # seller must be willing to trade
+            if seller.food > 6 and seller.sociability > 0.7:
 
-                # must be near each other
+                # must be nearby
                 if abs(seller.x - buyer.x) <= 1 and abs(seller.y - buyer.y) <= 1:
 
                     price = self.market.food_price

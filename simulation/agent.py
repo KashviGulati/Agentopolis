@@ -8,12 +8,12 @@ class Agent:
 
         self.agent_id = agent_id
 
-        # resources
+        # --- resources ---
         self.money = 50
         self.food = 5
         self.energy = 10
 
-        # position
+        # --- position ---
         self.x = random.randint(0, grid_size - 1)
         self.y = random.randint(0, grid_size - 1)
 
@@ -23,8 +23,10 @@ class Agent:
         self.work_ethic = random.uniform(0.5, 1.5)
         self.risk_tolerance = random.uniform(0.5, 1.5)
         self.exploration_bias = random.uniform(0.5, 1.5)
+        self.sociability = random.uniform(0.5, 1.5)
+        self.food_priority = random.uniform(0.5, 1.5)
 
-        # decision system
+        # --- decision system ---
         self.brain = DecisionModel()
 
     def move(self, grid_size):
@@ -35,20 +37,6 @@ class Agent:
         self.x = max(0, min(grid_size - 1, self.x + dx))
         self.y = max(0, min(grid_size - 1, self.y + dy))
 
-    def position(self):
-        return (self.x, self.y)
-
-    def decide(self):
-        return self.brain.choose_action(self)
-
-    def consume_food(self):
-
-        # probabilistic consumption
-        if random.random() < 0.4:
-            self.food -= 1
-
-        if self.food <= 0:
-            self.alive = False
     def move_toward(self, target, grid_size):
 
         tx, ty = target
@@ -65,3 +53,18 @@ class Agent:
 
         self.x = max(0, min(grid_size - 1, self.x))
         self.y = max(0, min(grid_size - 1, self.y))
+
+    def position(self):
+        return (self.x, self.y)
+
+    def decide(self):
+        return self.brain.choose_action(self)
+
+    def consume_food(self):
+
+        # probabilistic food consumption
+        if random.random() < 0.4:
+            self.food -= 1
+
+        if self.food <= 0:
+            self.alive = False

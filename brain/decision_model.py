@@ -5,13 +5,13 @@ class DecisionModel:
 
     def choose_action(self, agent):
 
-        # Work score increases if agent is poor
-        work_score = max(0, 10 - agent.money) * agent.work_ethic
+        # work motivation increases when poor
+        work_score = max(0, 20 - agent.money) * agent.work_ethic
 
-        # Food score increases if agent is hungry
-        food_score = max(0, 10 - agent.food)
+        # food urgency increases when hungry
+        food_score = max(0, 12 - agent.food) * agent.food_priority
 
-        # Exploration influenced by personality
+        # exploration personality
         explore_score = random.randint(1, 5) * agent.exploration_bias
 
         scores = {
@@ -20,7 +20,4 @@ class DecisionModel:
             "explore": explore_score
         }
 
-        # choose highest score
-        action = max(scores, key=scores.get)
-
-        return action
+        return max(scores, key=scores.get)
