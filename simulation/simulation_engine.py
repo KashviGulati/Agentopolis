@@ -22,7 +22,7 @@ class Simulation:
         for i in range(num_agents):
             self.agents.append(Agent(i, self.environment.size))
 
-        # setup visualization
+        # visualization
         plt.ion()
         self.fig, self.ax = plt.subplots()
 
@@ -33,10 +33,13 @@ class Simulation:
             if not agent.alive:
                 continue
 
+            # store observed market price
+            agent.memory["last_food_price"] = self.market.food_price
+
             action = agent.decide()
             pos = agent.position()
 
-            # ---- WORK ACTION ----
+            # ---------------- WORK ----------------
             if action == "work":
 
                 if self.environment.near_work_location(pos):
@@ -45,7 +48,7 @@ class Simulation:
                     target = self.environment.nearest_workplace(pos)
                     agent.move_toward(target, self.environment.size)
 
-            # ---- BUY FOOD ACTION ----
+            # ---------------- BUY FOOD ----------------
             elif action == "buy_food":
 
                 traded = self.agent_trade(agent)
@@ -66,7 +69,7 @@ class Simulation:
                         target = self.environment.nearest_market(pos)
                         agent.move_toward(target, self.environment.size)
 
-            # ---- EXPLORE ACTION ----
+            # ---------------- EXPLORE ----------------
             elif action == "explore":
 
                 agent.move(self.environment.size)
@@ -97,7 +100,7 @@ class Simulation:
             else:
                 colors.append("red")
 
-        # draw agents
+        # agents
         self.ax.scatter(xs, ys, c=colors)
 
         # workplaces
@@ -167,10 +170,8 @@ class Simulation:
             if not seller.alive:
                 continue
 
-            # seller must be willing to trade
             if seller.food > 6 and seller.sociability > 0.7:
 
-                # must be nearby
                 if abs(seller.x - buyer.x) <= 1 and abs(seller.y - buyer.y) <= 1:
 
                     price = self.market.food_price
@@ -182,6 +183,9 @@ class Simulation:
 
                         seller.money += price
                         seller.food -= 2
+
+                        # memory update
+                        buyer.memory["successful_trades"] += 1
 
                         return True
 

@@ -26,6 +26,12 @@ class Agent:
         self.sociability = random.uniform(0.5, 1.5)
         self.food_priority = random.uniform(0.5, 1.5)
 
+        # --- memory system ---
+        self.memory = {
+            "last_food_price": None,
+            "successful_trades": 0
+        }
+
         # --- decision system ---
         self.brain = DecisionModel()
 
