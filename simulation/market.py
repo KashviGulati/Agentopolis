@@ -29,7 +29,7 @@ class Market:
             self.food_price -= 1
 
         # keep price within bounds
-        self.food_price = max(1, min(self.food_price, 20))
+        self.food_price = max(3, min(self.food_price, 20))
 
         # reset demand counter
         self.transactions = 0

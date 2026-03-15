@@ -19,17 +19,9 @@ class Simulation:
 
         self.agents = []
 
-        # Track RL action usage
-        self.action_history = {
-            "work": [],
-            "buy_food": [],
-            "explore": []
-        }
-
         for i in range(num_agents):
             self.agents.append(Agent(i, self.environment.size))
 
-        # Visualization
         plt.ion()
         self.fig, self.ax = plt.subplots()
 
@@ -40,17 +32,13 @@ class Simulation:
             if not agent.alive:
                 continue
 
-            # RL chooses action
             action = agent.decide(self.market)
-
-            # track action
-            self.action_history[action].append(1)
 
             pos = agent.position()
 
             reward = 0
 
-            # ---------- WORK ----------
+            # WORK
             if action == "work":
 
                 if self.environment.near_work_location(pos):
@@ -63,7 +51,7 @@ class Simulation:
                     target = self.environment.nearest_workplace(pos)
                     agent.move_toward(target, self.environment.size)
 
-            # ---------- BUY FOOD ----------
+            # BUY FOOD
             elif action == "buy_food":
 
                 traded = self.agent_trade(agent)
@@ -90,13 +78,13 @@ class Simulation:
                         target = self.environment.nearest_market(pos)
                         agent.move_toward(target, self.environment.size)
 
-            # ---------- EXPLORE ----------
+            # EXPLORE
             elif action == "explore":
 
                 agent.move(self.environment.size)
                 reward += 0.5
 
-            # ---------- SURVIVAL ----------
+            # SURVIVAL
             agent.consume_food()
 
             if agent.alive:
@@ -104,7 +92,6 @@ class Simulation:
             else:
                 reward -= 10
 
-            # ---------- RL UPDATE ----------
             if agent.alive:
                 new_state = agent.rl.get_state(agent, self.market)
             else:
@@ -121,6 +108,30 @@ class Simulation:
 
         self.ax.clear()
 
+        size = self.environment.size
+
+        # draw city tiles
+        for x in range(size):
+            for y in range(size):
+
+                tile = self.environment.grid[x][y]
+
+                if tile == "work":
+                    color = "gray"
+
+                elif tile == "market":
+                    color = "blue"
+
+                elif tile == "housing":
+                    color = "purple"
+
+                else:
+                    color = "lightgreen"
+
+                rect = plt.Rectangle((x, y), 1, 1, color=color, alpha=0.5)
+                self.ax.add_patch(rect)
+
+        # draw agents
         xs = []
         ys = []
         colors = []
@@ -130,46 +141,26 @@ class Simulation:
             if not agent.alive:
                 continue
 
-            xs.append(agent.x)
-            ys.append(agent.y)
+            xs.append(agent.x + 0.5)
+            ys.append(agent.y + 0.5)
 
             if agent.money > 80:
-                colors.append("green")
+                colors.append("gold")
             elif agent.money > 30:
-                colors.append("yellow")
+                colors.append("orange")
             else:
                 colors.append("red")
 
-        # Agents
-        self.ax.scatter(xs, ys, c=colors)
+        self.ax.scatter(xs, ys, c=colors, s=40)
 
-        # Workplaces
-        wx = [x for x, y in self.environment.work_locations]
-        wy = [y for x, y in self.environment.work_locations]
+        self.ax.set_xlim(0, size)
+        self.ax.set_ylim(0, size)
 
-        self.ax.scatter(wx, wy, marker="s", color="black", s=120, label="Work")
-
-        # Markets
-        mx = [x for x, y in self.environment.market_locations]
-        my = [y for x, y in self.environment.market_locations]
-
-        self.ax.scatter(mx, my, marker="^", color="blue", s=140, label="Market")
-
-        # Housing
-        hx = [x for x, y in self.environment.housing_locations]
-        hy = [y for x, y in self.environment.housing_locations]
-
-        self.ax.scatter(hx, hy, marker="D", color="purple", s=120, label="Housing")
+        self.ax.set_aspect("equal")
 
         self.ax.set_title(
-            f"Agentopolis | Step {step} | Food Price: {self.market.food_price}"
+            f"Agentopolis City | Step {step} | Food Price: {self.market.food_price}"
         )
-
-        self.ax.set_xlim(0, self.environment.size)
-        self.ax.set_ylim(0, self.environment.size)
-
-        self.ax.legend()
-        self.ax.grid(True)
 
         plt.draw()
         plt.pause(0.01)
@@ -195,9 +186,6 @@ class Simulation:
             )
 
             time.sleep(0.05)
-
-        # After simulation finishes
-        self.plot_learning()
 
     def agent_trade(self, buyer):
 
@@ -226,27 +214,3 @@ class Simulation:
                         return True
 
         return False
-
-    def plot_learning(self):
-
-        print("Plotting learning graph...")
-
-        # Disable interactive mode so chart appears
-        plt.ioff()
-
-        actions = ["work", "buy_food", "explore"]
-
-        counts = [
-            len(self.action_history["work"]),
-            len(self.action_history["buy_food"]),
-            len(self.action_history["explore"])
-        ]
-
-        plt.figure()
-        plt.bar(actions, counts)
-
-        plt.title("Agent Action Preferences (Learning)")
-        plt.xlabel("Action")
-        plt.ylabel("Frequency")
-
-        plt.show()
