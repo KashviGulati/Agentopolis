@@ -1,6 +1,6 @@
 import random
 from brain.decision_model import DecisionModel
-
+from brain.reinforcement_learning import QLearning
 
 class Agent:
 
@@ -35,6 +35,10 @@ class Agent:
         # --- decision system ---
         self.brain = DecisionModel()
 
+        self.rl = QLearning()
+        self.last_state = None
+        self.last_action = None
+
     def move(self, grid_size):
 
         dx = random.choice([-1, 0, 1])
@@ -63,8 +67,16 @@ class Agent:
     def position(self):
         return (self.x, self.y)
 
-    def decide(self):
-        return self.brain.choose_action(self)
+    def decide(self, market):
+
+        state = self.rl.get_state(self, market)
+
+        action = self.rl.choose_action(state)
+
+        self.last_state = state
+        self.last_action = action
+
+        return action
 
     def consume_food(self):
 

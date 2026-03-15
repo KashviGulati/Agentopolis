@@ -19,10 +19,17 @@ class Simulation:
 
         self.agents = []
 
+        # Track RL action usage
+        self.action_history = {
+            "work": [],
+            "buy_food": [],
+            "explore": []
+        }
+
         for i in range(num_agents):
             self.agents.append(Agent(i, self.environment.size))
 
-        # visualization
+        # Visualization
         plt.ion()
         self.fig, self.ax = plt.subplots()
 
@@ -33,27 +40,39 @@ class Simulation:
             if not agent.alive:
                 continue
 
-            # store observed market price
-            agent.memory["last_food_price"] = self.market.food_price
+            # RL chooses action
+            action = agent.decide(self.market)
 
-            action = agent.decide()
+            # track action
+            self.action_history[action].append(1)
+
             pos = agent.position()
 
-            # ---------------- WORK ----------------
+            reward = 0
+
+            # ---------- WORK ----------
             if action == "work":
 
                 if self.environment.near_work_location(pos):
+
                     agent.money += 5
+                    reward += 2
+
                 else:
+
                     target = self.environment.nearest_workplace(pos)
                     agent.move_toward(target, self.environment.size)
 
-            # ---------------- BUY FOOD ----------------
+            # ---------- BUY FOOD ----------
             elif action == "buy_food":
 
                 traded = self.agent_trade(agent)
 
-                if not traded:
+                if traded:
+
+                    reward += 3
+
+                else:
 
                     pos = agent.position()
 
@@ -61,7 +80,9 @@ class Simulation:
 
                         success = self.market.buy_food(agent)
 
-                        if not success:
+                        if success:
+                            reward += 2
+                        else:
                             agent.move(self.environment.size)
 
                     else:
@@ -69,13 +90,32 @@ class Simulation:
                         target = self.environment.nearest_market(pos)
                         agent.move_toward(target, self.environment.size)
 
-            # ---------------- EXPLORE ----------------
+            # ---------- EXPLORE ----------
             elif action == "explore":
 
                 agent.move(self.environment.size)
+                reward += 0.5
 
-            # consume food each step
+            # ---------- SURVIVAL ----------
             agent.consume_food()
+
+            if agent.alive:
+                reward += 1
+            else:
+                reward -= 10
+
+            # ---------- RL UPDATE ----------
+            if agent.alive:
+                new_state = agent.rl.get_state(agent, self.market)
+            else:
+                new_state = None
+
+            agent.rl.update(
+                agent.last_state,
+                agent.last_action,
+                reward,
+                new_state
+            )
 
     def draw(self, step):
 
@@ -100,22 +140,22 @@ class Simulation:
             else:
                 colors.append("red")
 
-        # agents
+        # Agents
         self.ax.scatter(xs, ys, c=colors)
 
-        # workplaces
+        # Workplaces
         wx = [x for x, y in self.environment.work_locations]
         wy = [y for x, y in self.environment.work_locations]
 
         self.ax.scatter(wx, wy, marker="s", color="black", s=120, label="Work")
 
-        # markets
+        # Markets
         mx = [x for x, y in self.environment.market_locations]
         my = [y for x, y in self.environment.market_locations]
 
         self.ax.scatter(mx, my, marker="^", color="blue", s=140, label="Market")
 
-        # housing
+        # Housing
         hx = [x for x, y in self.environment.housing_locations]
         hy = [y for x, y in self.environment.housing_locations]
 
@@ -156,11 +196,10 @@ class Simulation:
 
             time.sleep(0.05)
 
-    def agent_trade(self, buyer):
+        # After simulation finishes
+        self.plot_learning()
 
-        # antisocial agents rarely trade
-        if buyer.sociability < 0.4:
-            return False
+    def agent_trade(self, buyer):
 
         for seller in self.agents:
 
@@ -170,7 +209,7 @@ class Simulation:
             if not seller.alive:
                 continue
 
-            if seller.food > 6 and seller.sociability > 0.7:
+            if seller.food > 6:
 
                 if abs(seller.x - buyer.x) <= 1 and abs(seller.y - buyer.y) <= 1:
 
@@ -184,9 +223,30 @@ class Simulation:
                         seller.money += price
                         seller.food -= 2
 
-                        # memory update
-                        buyer.memory["successful_trades"] += 1
-
                         return True
 
         return False
+
+    def plot_learning(self):
+
+        print("Plotting learning graph...")
+
+        # Disable interactive mode so chart appears
+        plt.ioff()
+
+        actions = ["work", "buy_food", "explore"]
+
+        counts = [
+            len(self.action_history["work"]),
+            len(self.action_history["buy_food"]),
+            len(self.action_history["explore"])
+        ]
+
+        plt.figure()
+        plt.bar(actions, counts)
+
+        plt.title("Agent Action Preferences (Learning)")
+        plt.xlabel("Action")
+        plt.ylabel("Frequency")
+
+        plt.show()
