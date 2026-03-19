@@ -1,16 +1,18 @@
 import sys
 import os
-
-# Allow Streamlit to access project modules
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
+import time
+import requests
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import numpy as np
 
-from simulation.simulation_engine import Simulation
+# Allow imports (if needed)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+
+# ===============================
+# GINI FUNCTION
+# ===============================
 
 def gini(values):
     values = np.array(values)
@@ -20,45 +22,108 @@ def gini(values):
 
     values = np.sort(values)
     n = len(values)
-
     cumulative = np.cumsum(values)
 
-    gini_coeff = (n + 1 - 2 * np.sum(cumulative) / cumulative[-1]) / n
-
-    return gini_coeff
+    return (n + 1 - 2 * np.sum(cumulative) / cumulative[-1]) / n
 
 
-st.title("Agentopolis Economic Simulation")
-st.write("Simulating a multi-agent economic system with dynamic markets.")
+# ===============================
+# UI HEADER
+# ===============================
 
-steps = st.slider("Simulation Steps", 50, 500, 200)
+st.set_page_config(layout="wide")
+st.title("🏙️ Agentopolis Economic Simulation")
 
-if st.button("Run Simulation"):
+st.markdown("### 🔴 LIVE Simulation Running")
 
-    sim = Simulation(num_agents=200)
-    sim.run(steps)
 
-    df = pd.DataFrame({
-        "Step": list(range(len(sim.population_history))),
-        "Population": sim.population_history,
-        "Food Price": sim.price_history
-    })
+# ===============================
+# DATA STORAGE
+# ===============================
 
-    st.subheader("Population Over Time")
-    fig1 = px.line(df, x="Step", y="Population")
-    st.plotly_chart(fig1)
+price_data = []
+population_data = []
+gini_data = []
 
-    st.subheader("Food Price Over Time")
-    fig2 = px.line(df, x="Step", y="Food Price")
-    st.plotly_chart(fig2)
+placeholder = st.empty()
 
-    gini_values = [gini(w) for w in sim.wealth_history]
 
-    df_gini = pd.DataFrame({
-        "Step": list(range(len(gini_values))),
-        "Gini": gini_values
-    })
+# ===============================
+# START BUTTON
+# ===============================
 
-    st.subheader("Wealth Inequality (Gini Index)")
-    fig3 = px.line(df_gini, x="Step", y="Gini")
-    st.plotly_chart(fig3)
+run = st.button("Start Live Simulation")
+
+
+# ===============================
+# LIVE LOOP
+# ===============================
+
+if run:
+
+    while True:
+        try:
+            res = requests.get("http://127.0.0.1:5000/step")
+            data = res.json()
+
+            population = data["alive"]
+            price = data["price"]
+            wealth = data["wealth"]
+
+            gini_val = gini(wealth)
+
+            population_data.append(population)
+            price_data.append(price)
+            gini_data.append(gini_val)
+
+            df = pd.DataFrame({
+                "Population": population_data,
+                "Price": price_data,
+                "Gini": gini_data
+            })
+
+            with placeholder.container():
+
+                # ===============================
+                # METRICS
+                # ===============================
+                col1, col2, col3 = st.columns(3)
+
+                col1.metric("👥 Population", population)
+                col2.metric("💰 Food Price", price)
+                col3.metric("⚖️ Gini Index", round(gini_val, 3))
+
+                st.divider()
+
+                # ===============================
+                # STATUS / INSIGHT
+                # ===============================
+                if gini_val > 0.5:
+                    st.error("⚠️ High inequality detected — economy unstable")
+                elif gini_val > 0.3:
+                    st.warning("⚠️ Moderate inequality — monitor system")
+                else:
+                    st.success("✅ Balanced economy")
+
+                st.divider()
+
+                # ===============================
+                # CHARTS
+                # ===============================
+                st.subheader("📈 Population Dynamics")
+                st.line_chart(df["Population"])
+
+                st.subheader("💹 Market Behavior")
+                st.line_chart(df["Price"])
+
+                st.subheader("⚖️ Inequality Over Time")
+                st.line_chart(df["Gini"])
+
+                st.subheader("💰 Economic Distribution")
+                st.bar_chart(wealth)
+
+            time.sleep(1)
+
+        except Exception as e:
+            st.error(f"Error: {e}")
+            break

@@ -6,14 +6,18 @@ const canvas = document.getElementById("cityCanvas");
 const ctx = canvas.getContext("2d");
 
 const gridSize = 30;
-const tileSize = 32;
 
-canvas.width = gridSize * tileSize;
-canvas.height = gridSize * tileSize;
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
 
 
 /* ================================
-   GLOBAL STATE (FROM BACKEND)
+   GLOBAL STATE
 ================================ */
 
 let agents = [];
@@ -53,23 +57,16 @@ sprites.market.src = "sprites/market.png";
 
 
 /* ================================
-   MAP INITIALIZATION
+   MAP
 ================================ */
 
 const map = [];
 
 for (let y = 0; y < gridSize; y++) {
     const row = [];
-    for (let x = 0; x < gridSize; x++) {
-        row.push(TILE.GRASS);
-    }
+    for (let x = 0; x < gridSize; x++) row.push(TILE.GRASS);
     map.push(row);
 }
-
-
-/* ================================
-   ROAD GRID
-================================ */
 
 for (let i = 0; i < gridSize; i++) {
     map[10][i] = TILE.ROAD;
@@ -78,11 +75,6 @@ for (let i = 0; i < gridSize; i++) {
     map[i][20] = TILE.ROAD;
 }
 
-
-/* ================================
-   BUILDINGS
-================================ */
-
 function placeBuilding(x, y, type) {
     map[y][x] = type;
     map[y][x + 1] = type;
@@ -90,36 +82,33 @@ function placeBuilding(x, y, type) {
     map[y + 1][x + 1] = type;
 }
 
-// Residential (top-left)
+// districts
 for (let y = 2; y < 8; y += 3)
     for (let x = 2; x < 8; x += 3)
         placeBuilding(x, y, TILE.HOUSE);
 
-// Work
 for (let y = 12; y < 18; y += 3)
     for (let x = 3; x < 9; x += 3)
         placeBuilding(x, y, TILE.WORK);
 
-// Market
 for (let y = 12; y < 18; y += 3)
     for (let x = 22; x < 27; x += 3)
         placeBuilding(x, y, TILE.MARKET);
 
-// Residential (bottom)
 for (let y = 22; y < 28; y += 3)
     for (let x = 12; x < 18; x += 3)
         placeBuilding(x, y, TILE.HOUSE);
 
 
 /* ================================
-   BACKEND CONNECTION
+   FETCH BACKEND
 ================================ */
 
 async function fetchSimulation() {
     try {
         const res = await fetch("http://127.0.0.1:5000/step");
         const data = await res.json();
-        console.log("DATA FROM BACKEND:", data);  
+
         agents = data.agents;
         foodPrice = data.price;
 
@@ -130,80 +119,77 @@ async function fetchSimulation() {
 
 
 /* ================================
-   DRAW TILE
+   DRAW MAP (FULLSCREEN)
 ================================ */
 
-function drawTile(x, y, type) {
-    const px = x * tileSize;
-    const py = y * tileSize;
+function drawMap(tileSizeX, tileSizeY) {
 
-    if (type === TILE.GRASS)
-        ctx.drawImage(sprites.grass, px, py, tileSize, tileSize);
-
-    else if (type === TILE.ROAD)
-        ctx.drawImage(sprites.road, px, py, tileSize, tileSize);
-
-    else if (type === TILE.HOUSE)
-        ctx.drawImage(sprites.house, px, py, tileSize, tileSize);
-
-    else if (type === TILE.WORK)
-        ctx.drawImage(sprites.office, px, py, tileSize, tileSize);
-
-    else if (type === TILE.MARKET)
-        ctx.drawImage(sprites.market, px, py, tileSize, tileSize);
-}
-
-
-/* ================================
-   DRAW MAP
-================================ */
-
-function drawMap() {
     for (let y = 0; y < gridSize; y++) {
         for (let x = 0; x < gridSize; x++) {
-            drawTile(x, y, map[y][x]);
+
+            const px = x * tileSizeX;
+            const py = y * tileSizeY;
+
+            const type = map[y][x];
+
+            if (type === TILE.GRASS)
+                ctx.drawImage(sprites.grass, px, py, tileSizeX, tileSizeY);
+
+            else if (type === TILE.ROAD)
+                ctx.drawImage(sprites.road, px, py, tileSizeX, tileSizeY);
+
+            else if (type === TILE.HOUSE)
+                ctx.drawImage(sprites.house, px, py, tileSizeX, tileSizeY);
+
+            else if (type === TILE.WORK)
+                ctx.drawImage(sprites.office, px, py, tileSizeX, tileSizeY);
+
+            else if (type === TILE.MARKET)
+                ctx.drawImage(sprites.market, px, py, tileSizeX, tileSizeY);
         }
     }
 }
 
 
 /* ================================
-   DRAW AGENTS (REAL DATA)
+   DRAW AGENTS
 ================================ */
 
-function drawAgents() {
+function drawAgents(tileSizeX, tileSizeY) {
+
     agents.forEach(agent => {
 
         let color;
 
-        if (agent.action === "work") {
-            color = "#4CAF50"; // green → working
-        } 
-        else if (agent.action === "buy_food") {
-            color = "#2196F3"; // blue → buying food
-        } 
-        else {
-            color = "#9E9E9E"; // gray → exploring
-        }
+        if (agent.action === "work") color = "#4CAF50";
+        else if (agent.action === "buy_food") color = "#2196F3";
+        else color = "#9E9E9E";
 
-        const ax = agent.x * tileSize + tileSize / 2;
-        const ay = agent.y * tileSize + tileSize / 2;
+        const ax = agent.x * tileSizeX + tileSizeX / 2;
+        const ay = agent.y * tileSizeY + tileSizeY / 2;
 
         ctx.beginPath();
         ctx.fillStyle = color;
-        ctx.arc(ax, ay, 6, 0, Math.PI * 2);
+        ctx.arc(ax, ay, Math.min(tileSizeX, tileSizeY) * 0.3, 0, Math.PI * 2);
         ctx.fill();
     });
 }
 
+
 /* ================================
-   HUD (PRICE DISPLAY)
+   HUD
 ================================ */
 
 function drawHUD() {
-    ctx.fillStyle = "white";
+
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(10, 10, 200, 70);
+
+    ctx.fillStyle = "#00e5ff";
     ctx.font = "14px monospace";
-    ctx.fillText(`Food Price: ${foodPrice}`, 10, 20);
+
+    ctx.fillText(`Agents: ${agents.length}`, 20, 30);
+    ctx.fillText(`Food Price: ${foodPrice}`, 20, 50);
 }
 
 
@@ -212,16 +198,20 @@ function drawHUD() {
 ================================ */
 
 function render() {
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    drawMap();
-    drawAgents();
+    const tileSizeX = canvas.width / gridSize;
+    const tileSizeY = canvas.height / gridSize;
+
+    drawMap(tileSizeX, tileSizeY);
+    drawAgents(tileSizeX, tileSizeY);
     drawHUD();
 }
 
 
 /* ================================
-   GAME LOOP
+   LOOP
 ================================ */
 
 async function gameLoop() {
@@ -231,23 +221,13 @@ async function gameLoop() {
 
 
 /* ================================
-   START (SPRITE SAFE LOAD)
+   START
 ================================ */
 
 window.onload = async () => {
 
-    // wait until all sprites load
-    const allLoaded = Object.values(sprites).every(img => img.complete);
-
-    if (!allLoaded) {
-        setTimeout(window.onload, 100);
-        return;
-    }
-
     await fetchSimulation();
     render();
 
-    setInterval(() => {
-        gameLoop();
-    }, 400);
+    setInterval(gameLoop, 400);
 };

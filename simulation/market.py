@@ -21,15 +21,17 @@ class Market:
 
     def update_price(self):
 
-        # demand based pricing
-        if self.transactions > 30:
-            self.food_price += 1
+    # smooth demand-based pricing
+        if self.transactions > 20:
+            self.food_price += 0.5
 
-        elif self.transactions < 10:
-            self.food_price -= 1
+        elif self.transactions < 15:
+            self.food_price -= 0.5
 
-        # keep price within bounds
+        print("Transactions:", self.transactions, "Price BEFORE:", self.food_price)
+        # clamp values
         self.food_price = max(3, min(self.food_price, 20))
 
-        # reset demand counter
+        # reset
         self.transactions = 0
+        print("Price AFTER:", self.food_price)

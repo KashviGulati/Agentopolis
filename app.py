@@ -2,6 +2,8 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from simulation.simulation_engine import Simulation
 
+engine = Simulation(num_agents=200)
+
 app = Flask(__name__)
 CORS(app)
 
@@ -9,24 +11,23 @@ sim = Simulation(num_agents=40)
 
 @app.route("/step")
 def step():
-    sim.step()
-    sim.market.update_price()
 
-    agents_data = []
+    engine.step()  # run one simulation step
 
-    for a in sim.agents:
-        if a.alive:
-            agents_data.append({
-                "x": a.x,
-                "y": a.y,
-                "money": a.money,
-                "food": a.food,
-                "action": a.current_action
-            })
+    # filter alive agents
+    alive_agents = [a for a in engine.agents if a.alive]
 
     return jsonify({
-        "agents": agents_data,
-        "price": sim.market.food_price
+        "agents": [
+            {
+                "x": a.x,
+                "y": a.y,
+                "action": a.current_action
+            } for a in alive_agents
+        ],
+        "price": engine.market.food_price,
+        "alive": len(alive_agents),
+        "wealth": [a.money for a in alive_agents]
     })
 
 if __name__ == "__main__":

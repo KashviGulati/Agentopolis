@@ -103,6 +103,7 @@ class Simulation:
                 reward,
                 new_state
             )
+            self.market.update_price()
 
     def draw(self, step):
 
