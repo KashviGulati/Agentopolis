@@ -6,6 +6,13 @@ class Agent:
 
     def __init__(self, agent_id, grid_size):
 
+        if random.random() < 0.5:
+            self.x = random.choice([10, 20])
+            self.y = random.randint(0, grid_size - 1)
+        else:
+            self.y = random.choice([10, 20])
+            self.x = random.randint(0, grid_size - 1)
+
         self.agent_id = agent_id
 
         # --- resources ---
@@ -13,12 +20,12 @@ class Agent:
         self.food = 5
         self.energy = 10
 
-        # --- position ---
-        self.x = random.randint(0, grid_size - 1)
-        self.y = random.randint(0, grid_size - 1)
+        
 
         self.alive = True
+        
 
+        self.current_action = None
         # --- personality traits ---
         self.work_ethic = random.uniform(0.5, 1.5)
         self.risk_tolerance = random.uniform(0.5, 1.5)
@@ -73,6 +80,7 @@ class Agent:
 
         action = self.rl.choose_action(state)
 
+        self.current_action = action   
         self.last_state = state
         self.last_action = action
 

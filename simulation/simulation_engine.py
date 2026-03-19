@@ -22,8 +22,8 @@ class Simulation:
         for i in range(num_agents):
             self.agents.append(Agent(i, self.environment.size))
 
-        plt.ion()
-        self.fig, self.ax = plt.subplots()
+        # plt.ion()
+        # self.fig, self.ax = plt.subplots()
 
     def step(self):
 
@@ -171,7 +171,7 @@ class Simulation:
 
             self.step()
             self.market.update_price()
-            self.draw(step)
+            # self.draw(step)
 
             alive_agents = sum(agent.alive for agent in self.agents)
 
